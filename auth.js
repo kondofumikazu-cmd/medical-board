@@ -16,12 +16,12 @@
    Firebase Console → プロジェクト設定 → マイアプリ から取得
    ============================================================ */
 const FIREBASE_CONFIG = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId:             "YOUR_APP_ID"
+  apiKey: "AIzaSyCp_s7CQIZyNAcL1zNWMKqTo9LXYcpYWQ4",
+  authDomain: "medical-board-4ed4d.firebaseapp.com",
+  projectId: "medical-board-4ed4d",
+  storageBucket: "medical-board-4ed4d.firebasestorage.app",
+  messagingSenderId: "913400026730",
+  appId: "1:913400026730:web:c530aa33b6cc7010799c13"
 };
 /* ============================================================
    ★ ここまでが設定値
