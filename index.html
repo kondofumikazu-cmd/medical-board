@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <!-- iPhone / iPad でのビューポート最適化 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- ライト・ダーク両対応 -->
+  <meta name="color-scheme" content="light dark" />
+  <!-- スマホでホーム画面に追加したとき用 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>みえる医療指示ボード</title>
+  <!-- スタイルシート -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ============================================================
+     メインコンテンツ
+     ============================================================ -->
+<div class="app">
+
+  <!-- ======================================================
+       ヘッダー（タイトル ＋ アクションボタン群）
+       ====================================================== -->
+  <header class="header">
+    <div class="titleBox">
+      <h1>みえる医療指示ボード</h1>
+      <p class="lead">
+        医師・看護師が場面ごとの指示を選ぶと、患者さんに
+        <strong>大きな文字とふりがな</strong>で見せられます。
+        <em>index.html</em> を GitHub Pages に置くだけで動きます。
+      </p>
+    </div>
+
+    <!-- 右側：操作ボタン群 -->
+    <div class="actions">
+      <!-- ログインボタン（未ログイン時のみ表示） -->
+      <button class="btn" id="authBtn" type="button" aria-label="ログイン・新規登録">
+        ログイン
+      </button>
+
+      <!-- ユーザー情報（ログイン中のみ表示） -->
+      <div id="userInfo" style="display:none; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span class="chip" id="userEmail" aria-live="polite"></span>
+        <button class="btn" id="logoutBtn" type="button">ログアウト</button>
+      </div>
+
+      <!-- ダークモード切替 -->
+      <button class="btn" id="toggleThemeBtn" type="button" aria-label="ダークモード切り替え">
+        🌙 ダークモード
+      </button>
+
+      <!-- テキストコピー -->
+      <button class="btn" id="copyBtn" type="button" aria-label="表示中の文をコピー">
+        表示文をコピー
+      </button>
+
+      <!-- 表示クリア -->
+      <button class="btn" id="clearBtn" type="button" aria-label="表示をクリア">
+        表示を消す
+      </button>
+    </div>
+  </header><!-- /.header -->
+
+
+  <!-- ======================================================
+       3カラムレイアウト
+       ====================================================== -->
+  <main class="layout">
+
+    <!-- ============ 左カラム：場面を選ぶ ============ -->
+    <aside class="panel leftCol" aria-label="場面選択">
+      <h2 class="sectionTitle">1. 場面を選ぶ</h2>
+      <p class="sectionNote">
+        下のボタンを押すと、右に指示文一覧が出ます。
+        検索でも絞り込めます。
+      </p>
+
+      <!-- 検索ボックス -->
+      <div class="searchBox">
+        <label for="searchInput" class="visually-hidden">指示文を検索</label>
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="例：採血、MRI、待ってください"
+          aria-label="指示文を検索"
+        />
+      </div>
+
+      <!-- カテゴリーボタン一覧（JavaScript が描画） -->
+      <div class="categories" id="categoryList" role="list" aria-label="場面カテゴリー"></div>
+    </aside>
+
+
+    <!-- ============ 中央カラム：指示文を選ぶ ============ -->
+    <section class="panel" aria-label="指示文選択">
+      <h2 class="sectionTitle">2. 指示文を選ぶ</h2>
+      <p class="sectionNote" id="currentCategoryNote">カテゴリーを選択してください。</p>
+      <!-- 指示文グリッド（JavaScript が描画） -->
+      <div class="phraseGrid" id="phraseGrid" role="list" aria-label="指示文一覧"></div>
+    </section>
+
+
+    <!-- ============ 右カラム：補助ツール群 ============ -->
+    <aside class="rightCol" aria-label="補助機能">
+
+      <!-- よく使う補助文 -->
+      <section class="panel">
+        <h2 class="sectionTitle">よく使う補助文</h2>
+        <div class="toolbar" id="quickActions" aria-label="よく使う補助文"></div>
+      </section>
+
+      <!-- 最近使った文 -->
+      <section class="panel">
+        <h2 class="sectionTitle">最近使った文</h2>
+        <div class="historyList" id="historyList" aria-live="polite" aria-label="最近使った文一覧"></div>
+      </section>
+
+      <!-- お気に入り -->
+      <section class="panel" aria-label="お気に入り">
+        <h2 class="sectionTitle">★ お気に入り</h2>
+        <p class="sectionNote">
+          自由入力した文を保存できます。ログインが必要です。
+        </p>
+        <!-- JavaScript が描画するコンテナ -->
+        <div id="favoritesContainer">
+          <p class="authPrompt">
+            お気に入りを保存するには
+            <button onclick="openAuthModal('login')" type="button">ログイン</button>
+            または
+            <button onclick="openAuthModal('register')" type="button">新規登録</button>
+            してください。
+          </p>
+        </div>
+      </section>
+
+      <!-- 自由入力フォーム -->
+      <section class="panel" aria-label="自由入力">
+        <h2 class="sectionTitle">自由入力</h2>
+        <p class="sectionNote">
+          定型文にない指示も、その場で大きく表示できます。<br>
+          ふりがな・英語は任意です。
+        </p>
+        <div class="formGrid">
+          <!-- 日本語本文 -->
+          <div>
+            <label for="customJa" class="fieldLabel">日本語</label>
+            <textarea
+              id="customJa"
+              class="textarea"
+              placeholder="例：今からおなかを押して診ます。"
+              rows="3"
+            ></textarea>
+          </div>
+          <!-- ふりがな -->
+          <div>
+            <label for="customFuri" class="fieldLabel">ふりがな（任意）</label>
+            <input
+              id="customFuri"
+              class="textInput"
+              type="text"
+              placeholder="例：いまからおなかをおしてみます。"
+            />
+          </div>
+          <!-- 英語 -->
+          <div>
+            <label for="customEnInput" class="fieldLabel">英語（任意）</label>
+            <textarea
+              id="customEnInput"
+              class="textarea"
+              placeholder="例：I will press your abdomen now."
+              rows="2"
+            ></textarea>
+          </div>
+          <!-- ボタン群 -->
+          <div class="toolbar">
+            <button class="btn" id="showCustomBtn" type="button">
+              患者に表示する
+            </button>
+            <button class="btn" id="addFavBtn" type="button" aria-label="自由入力した文をお気に入りに追加">
+              ★ お気に入りに追加
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </aside><!-- /.rightCol -->
+  </main><!-- /.layout -->
+
+
+  <!-- ======================================================
+       プレビューセクション（下部）
+       ====================================================== -->
+  <section class="previewSection" aria-label="患者さんに見せる画面のプレビュー">
+    <div class="displayCard">
+
+      <!-- プレビューヘッダー -->
+      <div class="previewHeader">
+        <div>
+          <h2 class="sectionTitle">患者さんに見せる画面のプレビュー</h2>
+          <p class="sectionNote">
+            「患者表示を開く」を押すと、余計なUIが消えて文字だけが大きく全画面表示されます。
+          </p>
+        </div>
+        <button class="btn" id="fullscreenBtn" type="button" aria-haspopup="dialog">
+          患者表示を開く
+        </button>
+      </div>
+
+      <!-- 文字サイズ ＆ 言語切り替え -->
+      <div class="statusRow">
+        <div class="sliderBox">
+          <label class="sliderLabel" for="fontScaleRange">文字サイズ</label>
+          <input
+            id="fontScaleRange"
+            class="fontRange"
+            type="range"
+            min="80" max="160" step="10" value="100"
+            list="fontScaleMarks"
+            aria-label="文字サイズ調整"
+          />
+          <span class="sliderValue" id="fontScaleValue" aria-live="polite">100%</span>
+        </div>
+        <!-- 目盛り -->
+        <datalist id="fontScaleMarks">
+          <option value="80"></option>
+          <option value="100"></option>
+          <option value="120"></option>
+          <option value="140"></option>
+          <option value="160"></option>
+        </datalist>
+        <!-- 言語チップ -->
+        <button type="button" class="chip active" data-lang="both" aria-pressed="true">日英表示</button>
+        <button type="button" class="chip" data-lang="ja" aria-pressed="false">日本語のみ</button>
+      </div>
+
+      <!-- 表示エリア（aria-live でスクリーンリーダー通知）-->
+      <div class="displayArea" aria-live="polite" aria-atomic="true">
+        <p class="displayLabel">患者さんに見せる画面のプレビュー</p>
+        <div id="displayContent" class="empty">
+          ここに大きく表示されます。<br>上から文を選んでください。
+        </div>
+      </div>
+
+    </div><!-- /.displayCard -->
+  </section><!-- /.previewSection -->
+
+  <p class="footerNote">
+    このページは静的 HTML のみで動作します。GitHub Pages 上でそのまま公開できます。
+    認証・お気に入り機能は Firebase を利用します（<strong>auth.js</strong> を設定してください）。
+  </p>
+
+</div><!-- /.app -->
+
+
+<!-- ============================================================
+     患者表示オーバーレイ（全画面）
+     ============================================================ -->
+<div
+  class="patientOverlay"
+  id="patientOverlay"
+  role="dialog"
+  aria-modal="true"
+  aria-label="患者さんに見せる画面"
+  aria-hidden="true"
+>
+  <div class="patientShell">
+
+    <!-- 上部バー：× ボタン ＋ ツール -->
+    <div class="patientTopBar">
+      <!-- × で最初の画面に戻る -->
+      <button
+        class="closePatientBtn"
+        id="closePatientBtn"
+        type="button"
+        aria-label="最初の画面に戻る"
+      >×</button>
+
+      <!-- 文字サイズ ＆ 言語切り替え -->
+      <div class="patientTools">
+        <div class="sliderBox">
+          <label class="sliderLabel" for="patientFontScaleRange">文字サイズ</label>
+          <input
+            id="patientFontScaleRange"
+            class="fontRange"
+            type="range"
+            min="80" max="160" step="10" value="100"
+            list="fontScaleMarks"
+            aria-label="患者表示の文字サイズ調整"
+          />
+          <span class="sliderValue" id="patientFontScaleValue">100%</span>
+        </div>
+        <button type="button" class="chip active" data-lang="both">日英表示</button>
+        <button type="button" class="chip" data-lang="ja">日本語のみ</button>
+      </div>
+    </div><!-- /.patientTopBar -->
+
+    <!-- 患者テキスト表示ステージ -->
+    <div class="patientStage">
+      <div class="patientCard">
+        <!-- 縦スクロール可の表示エリア -->
+        <div
+          class="patientDisplayArea"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <div id="patientDisplayContent" class="empty">
+            ここに大きく表示されます。<br>上から文を選んでください。
+          </div>
+        </div>
+      </div>
+    </div><!-- /.patientStage -->
+
+  </div><!-- /.patientShell -->
+</div><!-- /.patientOverlay -->
+
+
+<!-- ============================================================
+     認証モーダル（ログイン / 新規登録）
+     ============================================================ -->
+<div
+  class="authModal"
+  id="authModal"
+  role="dialog"
+  aria-modal="true"
+  aria-label="ログイン・新規登録"
+>
+  <div class="authModalBox">
+
+    <!-- 閉じるボタン -->
+    <button class="authCloseBtn" id="closeAuthModal" type="button" aria-label="閉じる">×</button>
+
+    <h2 class="authModalTitle">アカウント</h2>
+
+    <!-- タブ切り替え -->
+    <div class="authTabs" role="tablist">
+      <button class="authTab active" data-tab="login" role="tab" aria-selected="true">ログイン</button>
+      <button class="authTab" data-tab="register" role="tab" aria-selected="false">新規登録</button>
+    </div>
+
+    <!-- ---- ログインフォーム ---- -->
+    <form id="loginForm" class="authForm" novalidate>
+      <div class="authInputGroup">
+        <label for="loginEmail">メールアドレス</label>
+        <input
+          id="loginEmail"
+          type="email"
+          autocomplete="email"
+          required
+          placeholder="example@example.com"
+        />
+      </div>
+      <div class="authInputGroup">
+        <label for="loginPassword">パスワード</label>
+        <input
+          id="loginPassword"
+          type="password"
+          autocomplete="current-password"
+          required
+          placeholder="6文字以上"
+        />
+      </div>
+      <p class="authError" id="loginError" aria-live="polite"></p>
+      <button type="submit" class="authSubmitBtn">ログイン</button>
+    </form>
+
+    <!-- ---- 新規登録フォーム（初期は非表示）---- -->
+    <form id="registerForm" class="authForm" novalidate style="display:none">
+      <div class="authInputGroup">
+        <label for="regEmail">メールアドレス</label>
+        <input
+          id="regEmail"
+          type="email"
+          autocomplete="email"
+          required
+          placeholder="example@example.com"
+        />
+      </div>
+      <div class="authInputGroup">
+        <label for="regPassword">パスワード</label>
+        <input
+          id="regPassword"
+          type="password"
+          autocomplete="new-password"
+          required
+          placeholder="6文字以上"
+        />
+      </div>
+      <div class="authInputGroup">
+        <label for="regPasswordConfirm">パスワード（確認）</label>
+        <input
+          id="regPasswordConfirm"
+          type="password"
+          autocomplete="new-password"
+          required
+          placeholder="もう一度入力"
+        />
+      </div>
+      <p class="authError" id="registerError" aria-live="polite"></p>
+      <button type="submit" class="authSubmitBtn">新規登録</button>
+    </form>
+
+  </div><!-- /.authModalBox -->
+</div><!-- /.authModal -->
+
+
+<!-- ============================================================
+     Firebase SDK（compat v9 — CDN から読み込み）
+     ============================================================
+     Firebase を使わない場合はこの3行を削除してください。
+     auth.js の設定だけで認証は動きません。
+     Firebase Console でプロジェクトを作ってから
+     auth.js の FIREBASE_CONFIG を書き換えてください。
+     ============================================================ -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<!-- アプリのスクリプト（読み込み順序が重要！）-->
+<script src="auth.js"></script>       <!-- 1. Firebase 認証 -->
+<script src="favorites.js"></script>  <!-- 2. お気に入り管理 -->
+<script src="app.js"></script>        <!-- 3. メインアプリ（最後に読み込む）-->
+
+</body>
+</html>

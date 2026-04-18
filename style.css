@@ -1,0 +1,951 @@
+/* ============================================================
+   みえる医療指示ボード — style.css
+   橙色テーマ（通常）、灰色テーマ（ダークモード）
+   iPhone / iPad / Mac / PC フル対応
+   ============================================================ */
+
+/* ---- CSS 変数（テーマ切替の核心）---- */
+:root {
+  /* 通常テーマ：橙背景・黒文字 */
+  --bg:            #f3a53b;
+  --panel:         rgba(255,255,255,0.72);
+  --panel-strong:  rgba(255,255,255,0.88);
+  --text:          #111111;
+  --sub:           #3a3a3a;
+  --line:          rgba(0,0,0,0.15);
+  --accent:        #1a2637;
+  --chip:          rgba(255,255,255,0.70);
+  --danger:        #c0392b;
+  --shadow:        0 6px 20px rgba(0,0,0,0.10);
+  --shadow-deep:   0 12px 32px rgba(0,0,0,0.15);
+
+  /* フォントスケール（スライダーで変更） */
+  --font-scale: 1;
+
+  /* プレビュー表示サイズ */
+  --display-size:    clamp(calc(1.5rem * var(--font-scale)), calc(2.8vw * var(--font-scale)), calc(2.6rem * var(--font-scale)));
+  --display-size-en: clamp(calc(0.95rem * var(--font-scale)), calc(1.5vw * var(--font-scale)), calc(1.35rem * var(--font-scale)));
+
+  /* 患者表示サイズ（大きく） */
+  --patient-display-size:    clamp(calc(2.2rem * var(--font-scale)), calc(6vw * var(--font-scale)), calc(6rem * var(--font-scale)));
+  --patient-display-size-en: clamp(calc(1rem * var(--font-scale)), calc(2vw * var(--font-scale)), calc(1.9rem * var(--font-scale)));
+
+  /* デザイン定数 */
+  --radius: 20px;
+  --radius-sm: 14px;
+
+  /* 日本語優先フォント */
+  --font: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+}
+
+/* ---- ダークモード変数 ---- */
+body.dark {
+  --bg:           #6b6b6b;
+  --panel:        rgba(70,70,70,0.82);
+  --panel-strong: rgba(55,55,55,0.92);
+  --text:         #ffd95b;
+  --sub:          #ffe88f;
+  --line:         rgba(255,217,91,0.22);
+  --accent:       #fff2a8;
+  --chip:         rgba(90,90,90,0.90);
+  --shadow:       0 6px 20px rgba(0,0,0,0.30);
+  --shadow-deep:  0 12px 32px rgba(0,0,0,0.38);
+}
+
+/* ---- リセット & 基本 ---- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  /* iPhoneでスクロールを滑らかに */
+  -webkit-overflow-scrolling: touch;
+}
+
+body {
+  transition: background-color .25s ease, color .25s ease;
+}
+
+/* フォーム部品にも同じフォントを使う */
+button, input, select, textarea {
+  font: inherit;
+}
+
+/* ---- アプリコンテナ ---- */
+.app {
+  /* PC: 最大幅 1760px、左右 14px 余白 */
+  width: min(1760px, calc(100vw - 28px));
+  margin: 0 auto;
+  padding: clamp(10px, 1.2vw, 20px);
+}
+
+/* ============================================================
+   ヘッダー
+   ============================================================ */
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.titleBox {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+}
+
+h1 {
+  margin: 0 0 6px;
+  font-size: clamp(1.4rem, 2.5vw, 2.1rem);
+  line-height: 1.2;
+}
+
+.lead {
+  margin: 0;
+  font-size: 0.94rem;
+  color: var(--sub);
+  line-height: 1.65;
+}
+
+/* ヘッダー右側ボタン群 */
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+/* ---- 汎用ボタン ---- */
+.btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--panel-strong);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 10px 16px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: transform .12s ease, opacity .12s ease;
+  white-space: nowrap;
+  min-height: 44px; /* タッチしやすいサイズ */
+}
+.btn:hover  { transform: translateY(-1px); }
+.btn:active { transform: translateY(0); opacity: .85; }
+
+/* 危険ボタン（削除など） */
+.btn-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ---- フォーカスリング（アクセシビリティ）---- */
+.btn:focus-visible,
+.chip:focus-visible,
+.phraseBtn:focus-visible,
+.catBtn:focus-visible,
+.historyItem:focus-visible,
+.favItem:focus-visible {
+  outline: 3px solid rgba(37,99,235,.55);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   3カラムレイアウト
+   ============================================================ */
+.layout {
+  display: grid;
+  /* 左：場面選択、中央：指示文、右：補助ツール */
+  grid-template-columns: minmax(240px, 280px) minmax(0, 1.5fr) minmax(260px, 300px);
+  gap: 14px;
+  align-items: start;
+}
+
+/* ---- パネル（共通カード）---- */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(8px);
+}
+
+.sectionTitle {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sectionNote {
+  margin: 0 0 12px;
+  color: var(--sub);
+  font-size: 0.90rem;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   左カラム：場面選択
+   ============================================================ */
+.searchBox {
+  margin-bottom: 12px;
+}
+
+.searchBox input {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.72);
+  color: #111;
+  padding: 11px 14px;
+}
+body.dark .searchBox input {
+  background: rgba(255,255,255,0.12);
+  color: #fff6b8;
+}
+
+/* カテゴリー一覧（縦スクロール可） */
+.categories {
+  display: grid;
+  gap: 7px;
+  max-height: min(70vh, 880px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* カテゴリーボタン */
+.catBtn {
+  text-align: left;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: transform .1s ease;
+  min-height: 44px;
+}
+.catBtn:hover  { transform: translateX(2px); }
+.catBtn.active {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+  font-weight: 700;
+}
+
+/* ============================================================
+   中央カラム：指示文グリッド
+   ============================================================ */
+.phraseGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.phraseBtn {
+  text-align: left;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.72);
+  color: #111;
+  border-radius: 18px;
+  padding: 14px;
+  cursor: pointer;
+  min-height: 90px;
+  transition: transform .1s ease, box-shadow .1s ease;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+body.dark .phraseBtn {
+  background: rgba(255,255,255,0.10);
+  color: #fff2a8;
+}
+.phraseBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-deep);
+}
+
+.phraseBtn small {
+  display: block;
+  opacity: 0.80;
+  margin-top: 6px;
+  font-size: 0.82em;
+  line-height: 1.45;
+  color: var(--sub);
+}
+body.dark .phraseBtn small { color: var(--sub); }
+
+.empty {
+  color: var(--sub);
+  font-size: 0.96rem;
+  line-height: 1.8;
+  grid-column: 1 / -1;
+}
+
+/* ============================================================
+   右カラム：補助ツール
+   ============================================================ */
+.rightCol {
+  display: grid;
+  gap: 14px;
+}
+
+/* よく使う補助文ボタン群 */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* チップ（小型トグルボタン）*/
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: var(--chip);
+  color: var(--text);
+  cursor: pointer;
+  min-height: 36px;
+  transition: transform .1s ease;
+  white-space: nowrap;
+}
+.chip:hover { transform: translateY(-1px); }
+.chip.active {
+  font-weight: 700;
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+/* 最近使った文リスト */
+.historyList {
+  display: grid;
+  gap: 7px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.historyItem {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--chip);
+  color: var(--text);
+  padding: 9px 12px;
+  cursor: pointer;
+  min-height: 44px;
+  transition: transform .1s ease;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.historyItem:hover { transform: translateX(2px); }
+
+.mini {
+  margin-top: 3px;
+  display: block;
+  color: var(--sub);
+  font-size: 0.82rem;
+}
+
+/* ---- 自由入力フォーム ---- */
+.formGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.fieldLabel {
+  font-size: 0.90rem;
+  color: var(--sub);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.textInput, .textarea {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.72);
+  color: #111;
+  padding: 11px 14px;
+}
+body.dark .textInput,
+body.dark .textarea {
+  background: rgba(255,255,255,0.10);
+  color: #fff6b8;
+}
+
+.textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+/* ---- お気に入りリスト ---- */
+.favList {
+  display: grid;
+  gap: 7px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.favItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--chip);
+  padding: 8px 10px;
+  cursor: pointer;
+  min-height: 44px;
+  transition: transform .1s ease;
+  text-align: left;
+  width: 100%;
+}
+.favItem:hover { transform: translateX(2px); }
+
+.favItemText {
+  flex: 1;
+  min-width: 0;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.favDeleteBtn {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 0 2px;
+  line-height: 1;
+  min-height: 24px;
+}
+
+.authPrompt {
+  font-size: 0.9rem;
+  color: var(--sub);
+  line-height: 1.65;
+}
+.authPrompt button {
+  display: inline;
+  border: none;
+  background: none;
+  color: var(--text);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+}
+
+/* ============================================================
+   プレビューセクション（下部）
+   ============================================================ */
+.previewSection {
+  margin-top: 14px;
+}
+
+.displayCard {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  padding: 20px;
+  min-height: 300px;
+  box-shadow: var(--shadow-deep);
+}
+
+.previewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+/* 文字サイズスライダー */
+.sliderBox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  min-height: 44px;
+}
+
+.sliderLabel {
+  font-size: 0.90rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.fontRange {
+  width: min(200px, 35vw);
+  accent-color: #2563eb;
+}
+body.dark .fontRange { accent-color: #ffd95b; }
+
+.sliderValue {
+  min-width: 3.4em;
+  text-align: right;
+  font-size: 0.88rem;
+  color: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 表示エリア */
+.displayArea {
+  border: 1.5px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  min-height: 200px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.displayLabel {
+  font-size: 0.90rem;
+  color: var(--sub);
+  margin: 0;
+}
+
+/* プレビューの日本語大テキスト */
+.displayMain {
+  margin: 0;
+  font-size: var(--display-size);
+  line-height: 1.5;
+  letter-spacing: .02em;
+  font-weight: 700;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.displayMain ruby { ruby-position: over; }
+.displayMain rt   { font-size: .42em; letter-spacing: 0; }
+
+/* プレビューの英語テキスト */
+.displayEn {
+  margin: 0;
+  font-size: var(--display-size-en);
+  color: var(--sub);
+  line-height: 1.7;
+}
+
+/* メタタグ（カテゴリ名・タグ）*/
+.displayMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.metaTag {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--chip);
+  border: 1px solid var(--line);
+  font-size: 0.84rem;
+}
+
+/* ============================================================
+   患者表示オーバーレイ
+   iPhoneで確実に動くよう Fullscreen API ではなく position:fixed
+   ============================================================ */
+.patientOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  display: none;          /* 初期は非表示 */
+  /* iOS で overscroll が外に漏れないよう */
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+/* .open クラスで表示 */
+.patientOverlay.open {
+  display: block;
+}
+
+/* 患者表示中は背面スクロールをロック */
+body.patient-open {
+  overflow: hidden;
+  /* iOS Safari でのスクロールロック補強 */
+  position: fixed;
+  width: 100%;
+}
+
+/* 患者表示シェル：safe-area（ノッチ対応） */
+.patientShell {
+  min-height: 100dvh;
+  padding:
+    max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 12px;
+}
+
+/* 上部バー（×ボタン ＋ ツール） */
+.patientTopBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+/* × ボタン */
+.closePatientBtn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--panel-strong);
+  color: var(--text);
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  font-size: 1.8rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  flex: 0 0 auto;
+  transition: transform .12s ease;
+}
+.closePatientBtn:hover { transform: scale(1.08); }
+
+/* ツール群（スライダー・言語チップ）*/
+.patientTools {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+/* 患者表示ステージ */
+.patientStage {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 患者カード（白背景パネル） */
+.patientCard {
+  width: min(1520px, 100%);
+  min-height: 100%;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  box-shadow: var(--shadow-deep);
+  padding: clamp(16px, 2.5vw, 32px);
+  display: grid;
+  min-width: 0;
+}
+
+/* 患者テキスト表示エリア（縦スクロール可） */
+.patientDisplayArea {
+  border: 1.5px dashed var(--line);
+  border-radius: 22px;
+  padding: clamp(18px, 3vw, 32px);
+  min-height: 100%;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: clamp(14px, 2vh, 22px);
+  text-align: center;
+  overflow-y: auto;          /* 長文でもスクロール可 */
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 患者表示：日本語大テキスト */
+.patientDisplayMain {
+  margin: 0;
+  font-size: var(--patient-display-size);
+  line-height: 1.4;
+  letter-spacing: .02em;
+  font-weight: 700;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.patientDisplayMain ruby { ruby-position: over; }
+.patientDisplayMain rt   { font-size: .36em; letter-spacing: 0; }
+
+/* 患者表示：英語テキスト */
+.patientDisplayEn {
+  margin: 0;
+  font-size: var(--patient-display-size-en);
+  color: var(--sub);
+  line-height: 1.65;
+  max-width: 100%;
+}
+
+/* 患者表示メタ */
+.patientMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* ============================================================
+   認証モーダル
+   ============================================================ */
+.authModal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+
+.authModal.open {
+  display: flex;
+}
+
+.authModalBox {
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+  width: min(440px, 100%);
+  box-shadow: var(--shadow-deep);
+  position: relative;
+}
+
+.authModalTitle {
+  margin: 0 0 16px;
+  font-size: 1.4rem;
+}
+
+.authTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.authTab {
+  flex: 1;
+  padding: 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all .15s ease;
+}
+.authTab.active {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.authForm {
+  display: grid;
+  gap: 12px;
+}
+
+.authInputGroup {
+  display: grid;
+  gap: 4px;
+}
+
+.authInputGroup label {
+  font-size: 0.90rem;
+  color: var(--sub);
+  font-weight: 600;
+}
+
+.authInputGroup input {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.72);
+  color: #111;
+  padding: 11px 14px;
+}
+body.dark .authInputGroup input {
+  background: rgba(255,255,255,0.10);
+  color: #fff6b8;
+}
+
+.authSubmitBtn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .15s ease;
+}
+.authSubmitBtn:hover { opacity: .88; }
+
+.authError {
+  color: var(--danger);
+  font-size: 0.88rem;
+  min-height: 1.2em;
+}
+
+.authCloseBtn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  border: none;
+  background: none;
+  color: var(--sub);
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+}
+
+/* ============================================================
+   ユーティリティ
+   ============================================================ */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.footerNote {
+  margin-top: 16px;
+  font-size: 0.88rem;
+  color: var(--sub);
+  line-height: 1.7;
+}
+
+/* ============================================================
+   レスポンシブ：タブレット（iPad 縦 など）
+   1カラム + 2カラムカテゴリ
+   ============================================================ */
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* カテゴリーボタンを2列 */
+  .categories {
+    max-height: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .header {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+}
+
+/* ============================================================
+   レスポンシブ：スマートフォン（iPhone）
+   1カラム、ボタン大きめ
+   ============================================================ */
+@media (max-width: 680px) {
+  .app {
+    width: 100vw;
+    padding: 10px 8px;
+  }
+
+  .panel, .displayCard, .titleBox {
+    padding: 12px 13px;
+  }
+
+  /* カテゴリーは1列 */
+  .categories {
+    grid-template-columns: 1fr;
+  }
+
+  /* 指示文ボタンは1列 */
+  .phraseGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .phraseBtn {
+    min-height: 70px;
+  }
+
+  /* プレビュー周り */
+  .displayCard  { min-height: 220px; }
+  .displayArea  { min-height: 160px; padding: 14px; }
+  .previewHeader { flex-direction: column; align-items: stretch; }
+  .previewHeader .btn { width: 100%; }
+
+  /* スライダーを横幅いっぱいに */
+  .sliderBox {
+    width: 100%;
+    justify-content: space-between;
+    border-radius: 16px;
+  }
+  .fontRange { width: 100%; flex: 1 1 auto; }
+
+  /* 患者表示上部 */
+  .patientTopBar  { align-items: stretch; }
+  .patientTools   { width: 100%; justify-content: stretch; }
+  .patientTools > * { flex: 1 1 auto; }
+  .patientTools .chip { flex: 1 1 0; text-align: center; }
+  .patientTools .sliderBox { width: 100%; }
+  .patientCard    { padding: 12px; border-radius: 20px; }
+  .patientDisplayArea { padding: 14px; border-radius: 16px; }
+
+  /* 全タッチ要素の最小サイズ確保 */
+  .btn, .chip, .catBtn, .phraseBtn, .historyItem, .favItem { min-height: 44px; }
+}
+
+/* ============================================================
+   印刷時（プレビューエリアのみ表示）
+   ============================================================ */
+@media print {
+  .header, .leftCol, .rightCol, .toolbar, .statusRow, .actions {
+    display: none !important;
+  }
+  body, html {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .displayCard, .displayArea {
+    box-shadow: none;
+    border-color: #999;
+    background: #fff;
+  }
+}
